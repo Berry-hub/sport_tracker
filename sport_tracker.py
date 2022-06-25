@@ -1,7 +1,7 @@
 import tkinter as tk
 from tkinter import messagebox, ttk
 import sqlite3 as db
-
+import matplotlib.pyplot as plt
 
 # create new database
 conn = db.connect('track_records.db')
@@ -98,6 +98,40 @@ def show():    # show data from database (by certain date)
 show_btn = tk.Button(show_frame, width=12, text='show record', font='Arial 11 bold', fg='dark blue', background='light grey', relief='raised', command=show)
 show_btn.grid(row=6, column=3, padx=10)
 
+######################
+
+show_graph_frame = tk.LabelFrame(window, text='show graph', labelanchor='n', background='light yellow')
+show_graph_frame.grid(row=11, column=0, columnspan=2, padx=5, sticky='ew')
+
+show_graph = tk.Label(show_graph_frame, text='choose the activity you would like \n to see a graph of records for', font='Arial 11', background='light yellow')
+show_graph.grid(row=12, column=0, rowspan=2, padx=10)
+
+fill_activity_graph = ttk.Combobox(show_graph_frame, width=20, font='Arial 11', values=['running', 'biking', 'swimming'])
+fill_activity_graph.grid(row=12, column=1, padx=10, pady=2)
+
+def graph():
+    conn = db.connect('track_records.db')
+    cur = conn.cursor()
+    cur.execute('SELECT date, distance FROM track_records WHERE activity = ? ORDER BY date', ([fill_activity_graph.get()]))
+    data = cur.fetchall()
+    dates = []
+    distance = []
+    for value in data:
+        dates.append(value[0])
+        distance.append(value[1])
+    cur.close()
+    conn.commit()
+    conn.close()
+    ### bar graph (needs to be polished - now really ugly, but working)
+    fig = plt.figure(figsize=(10,5))
+    plt.bar(dates, distance, color='turquoise', width=0.2)
+    plt.xlabel('date')
+    plt.ylabel('distance')
+    plt.title('sport tracker')
+    plt.show()
+
+graph_btn = tk.Button(show_graph_frame, width=12, text='show graph', font='Arial 11 bold', fg='dark blue', background='light grey', relief='raised', command=graph)
+graph_btn.grid(row=12, column=2, padx=10, pady=5)
 
 window.mainloop()
 
