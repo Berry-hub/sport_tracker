@@ -20,6 +20,7 @@ conn.close()
 window = tk.Tk()
 window.title('sport_tracker')
 window.geometry('800x420')
+window.iconbitmap('icon.ico')
 window.config(background='light yellow')
 
 title = tk.Label(window, text='Sport tracker', font='Arial 16 bold', background='light yellow')
@@ -109,7 +110,7 @@ show_graph.grid(row=12, column=0, rowspan=2, padx=10)
 fill_activity_graph = ttk.Combobox(show_graph_frame, width=20, font='Arial 11', values=['running', 'biking', 'swimming'])
 fill_activity_graph.grid(row=12, column=1, padx=10, pady=2)
 
-def graph():
+def graph():    # show graph with all records of chosen sport
     conn = db.connect('track_records.db')
     cur = conn.cursor()
     cur.execute('SELECT date, distance FROM track_records WHERE activity = ? ORDER BY date', ([fill_activity_graph.get()]))
