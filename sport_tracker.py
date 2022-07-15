@@ -1,7 +1,8 @@
 import tkinter as tk
 from tkinter import messagebox, ttk
 import sqlite3 as db
-import matplotlib.pyplot as plt
+import datetime
+from matplotlib import pyplot as plt
 
 # create new database
 conn = db.connect('track_records.db')
@@ -56,9 +57,9 @@ def add():    # add data to database
     conn = db.connect('track_records.db')
     cur = conn.cursor()
     inserted_data = f'date: {fill_date.get()} / activity: {fill_activity.get()} / distance: {fill_distance.get()}'
-    if tk.messagebox.askyesno(title='Warning', message=f'Data you have inserted: {inserted_data}, do you really want to save the record?') == True:
+    if messagebox.askyesno(title='Warning', message=f'Data you have inserted: {inserted_data}, do you really want to save the record?') == True:
         cur.execute('INSERT INTO track_records (date, activity, distance) VALUES(?,?,?)', (fill_date.get(), fill_activity.get(), fill_distance.get()))
-        tk.messagebox.showinfo(title='Note', message='Record succesfuly added into database!')
+        messagebox.showinfo(title='Note', message='Record succesfuly added into database!')
         fill_date.delete(0, 'end')
         fill_activity.delete(0, 'end')
         fill_distance.delete(0, 'end')
@@ -88,7 +89,7 @@ def show():    # show data from database (by certain date)
     cur.execute('SELECT activity, distance FROM track_records WHERE date = ?', ([day_selected]))
     record = cur.fetchall()
     if record == []:
-        tk.messagebox.showinfo(title='Note', message='You either entered wrong day format or that day you did not do anything!')  
+        messagebox.showinfo(title='Note', message='You either entered wrong day format or that day you did not do anything!')  
     else:
         for index,record in enumerate(record):
             activity_label = tk.Label(show_frame, width=25, text=f'{record[0]} >>> {record[1]} km', anchor='w', font='Arial 11 bold', background='light yellow')
@@ -134,5 +135,43 @@ def graph():    # show graph with all records of chosen sport
 graph_btn = tk.Button(show_graph_frame, width=12, text='show graph', font='Arial 11 bold', fg='dark blue', background='light grey', relief='raised', command=graph)
 graph_btn.grid(row=12, column=2, padx=10, pady=5)
 
-window.mainloop()
 
+track_frame = tk.LabelFrame(window, text='show distance', labelanchor='n', background='light yellow')
+track_frame.grid(row=13, column=0, columnspan=2, padx=5, sticky='ew')
+
+show_track = tk.Label(track_frame, text='distance you have run for the last ..... days', font='Arial 11', background='light yellow')
+show_track.grid(row=14, column=0, padx=10)
+fill_days = tk.Entry(track_frame, width=10, font='Arial 11', background='light pink')
+fill_days.grid(row=14, column=1)
+note_days = tk.Label(track_frame, text='enter number of days', font='Arial 8', background='light yellow')
+note_days.grid(row=15, column=1)
+
+
+def count():    # need to polish function! + check entry
+                # can also upgrade for other activities with combobox
+    conn = db.connect('track_records.db')
+    cur = conn.cursor()
+    cur.execute('SELECT date, distance FROM track_records WHERE activity = ? ORDER BY date',  ['running'])
+    result = cur.fetchall()
+    cur.close()
+    conn.commit()
+    conn.close()
+
+    today = datetime.date.today()
+    time_track = int(fill_days.get())
+    total_dist = 0
+    for date, distance in result:
+        if datetime.date.fromisoformat(date) > (today - datetime.timedelta(days=time_track)):
+            total_dist += distance
+
+    show_distance = tk.Label(window, text=f'{total_dist} km!', font='Arial 32', background='light yellow')
+    show_distance.grid(row=12, column=2, rowspan=3, padx=20)
+
+
+show_dist_btn = tk.Button(track_frame, width=12, text='show distance', font='Arial 11 bold', fg='dark blue', background='light grey', relief='raised', command=count)
+show_dist_btn.grid(row=14, column=3, padx=10)
+
+# need to reset total_dist value after pressing button more times
+
+
+window.mainloop()
