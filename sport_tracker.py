@@ -1,5 +1,5 @@
 import tkinter as tk
-from tkinter import messagebox, ttk
+from tkinter import DISABLED, END, NORMAL, messagebox, ttk
 import sqlite3 as db
 import datetime
 from matplotlib import pyplot as plt
@@ -102,28 +102,59 @@ show_btn.grid(row=6, column=3, padx=10)
 
 ######################
 
-show_graph_frame = tk.LabelFrame(window, text='show graph', labelanchor='n', background='light yellow')
-show_graph_frame.grid(row=11, column=0, columnspan=2, padx=5, sticky='ew')
+def click(event):    # allow days entry
+    fill_days.config(state='normal')
+    fill_days.delete(0, 'end')
 
-show_graph = tk.Label(show_graph_frame, text='choose the activity you would like \n to see a graph of records for', font='Arial 11', background='light yellow')
-show_graph.grid(row=12, column=0, rowspan=2, padx=10)
+track_frame = tk.LabelFrame(window, text='show distance', labelanchor='n', background='light yellow')
+track_frame.grid(row=13, column=0, columnspan=2, padx=5, sticky='ew')
 
-fill_activity_graph = ttk.Combobox(show_graph_frame, width=20, font='Arial 11', values=['running', 'biking', 'swimming'])
-fill_activity_graph.grid(row=12, column=1, padx=10, pady=2)
+show_track = tk.Label(track_frame, text='for the last', font='Arial 11', background='light yellow')
+show_track.grid(row=14, column=0, padx=10)
+fill_days = tk.Entry(track_frame, width=12, font='Arial 8', background='light pink')
+fill_days.insert(0, 'enter number')
+fill_days.config(state='disabled')
+fill_days.bind('<Button-1>', click)
+fill_days.grid(row=14, column=1)
 
-def graph():    # show graph with all records of chosen sport
+show_track = tk.Label(track_frame, text='days you have covered this distance by ', font='Arial 11', background='light yellow')
+show_track.grid(row=14, column=2, padx=10)
+fill_activity_graph = ttk.Combobox(track_frame, width=12, font='Arial 11', values=['running', 'biking', 'swimming'])
+fill_activity_graph.insert(0, 'choose one')
+fill_activity_graph.grid(row=14, column=3, padx=10)
+
+show_distance = tk.Label(track_frame, text='', font='Arial 32', background='light yellow')
+show_distance.grid(row=14, column=4, rowspan=3, padx=20)
+
+
+def grab_data():    # return data (distance and date) depending on user input - can choose activity from combobox and fill days interval
+    today = datetime.date.today()
+    time_track = int(fill_days.get())
+    start_day = today - datetime.timedelta(days=time_track)
+
     conn = db.connect('track_records.db')
     cur = conn.cursor()
-    cur.execute('SELECT date, distance FROM track_records WHERE activity = ? ORDER BY date', ([fill_activity_graph.get()]))
+    cur.execute('SELECT date, distance FROM track_records WHERE date > ? and activity = ? ORDER BY date', ([start_day, fill_activity_graph.get()]))
     data = cur.fetchall()
-    dates = []
-    distance = []
-    for value in data:
-        dates.append(value[0])
-        distance.append(value[1])
     cur.close()
     conn.commit()
     conn.close()
+    return data
+
+def count():    # need to check entry (tests!)
+    data = grab_data()
+    total_dist = 0
+    for date, distance in data:
+        total_dist += distance
+    show_distance.config(text=f'{total_dist}km!')
+
+def graph():    # show graph with all records of chosen sport
+    data = grab_data()
+    dates = []
+    distance = []
+    for date, dist in data:
+        dates.append(date)
+        distance.append(dist)
     ### bar graph (needs to be polished - now really ugly, but working)
     fig = plt.figure(figsize=(10,5))
     plt.bar(dates, distance, color='turquoise', width=0.2)
@@ -132,46 +163,12 @@ def graph():    # show graph with all records of chosen sport
     plt.title('sport tracker')
     plt.show()
 
-graph_btn = tk.Button(show_graph_frame, width=12, text='show graph', font='Arial 11 bold', fg='dark blue', background='light grey', relief='raised', command=graph)
-graph_btn.grid(row=12, column=2, padx=10, pady=5)
-
-
-track_frame = tk.LabelFrame(window, text='show distance', labelanchor='n', background='light yellow')
-track_frame.grid(row=13, column=0, columnspan=2, padx=5, sticky='ew')
-
-show_track = tk.Label(track_frame, text='distance you have run for the last ..... days', font='Arial 11', background='light yellow')
-show_track.grid(row=14, column=0, padx=10)
-fill_days = tk.Entry(track_frame, width=10, font='Arial 11', background='light pink')
-fill_days.grid(row=14, column=1)
-note_days = tk.Label(track_frame, text='enter number of days', font='Arial 8', background='light yellow')
-note_days.grid(row=15, column=1)
-
-
-def count():    # need to polish function! + check entry
-                # can also upgrade for other activities with combobox
-    conn = db.connect('track_records.db')
-    cur = conn.cursor()
-    cur.execute('SELECT date, distance FROM track_records WHERE activity = ? ORDER BY date',  ['running'])
-    result = cur.fetchall()
-    cur.close()
-    conn.commit()
-    conn.close()
-
-    today = datetime.date.today()
-    time_track = int(fill_days.get())
-    total_dist = 0
-    for date, distance in result:
-        if datetime.date.fromisoformat(date) > (today - datetime.timedelta(days=time_track)):
-            total_dist += distance
-
-    show_distance = tk.Label(window, text=f'{total_dist} km!', font='Arial 32', background='light yellow')
-    show_distance.grid(row=12, column=2, rowspan=3, padx=20)
-
 
 show_dist_btn = tk.Button(track_frame, width=12, text='show distance', font='Arial 11 bold', fg='dark blue', background='light grey', relief='raised', command=count)
-show_dist_btn.grid(row=14, column=3, padx=10)
+show_dist_btn.grid(row=15, column=2, padx=10, pady=5)
 
-# need to reset total_dist value after pressing button more times
+graph_btn = tk.Button(track_frame, width=12, text='show graph', font='Arial 11 bold', fg='dark blue', background='light grey', relief='raised', command=graph)
+graph_btn.grid(row=15, column=3, padx=10, pady=5)
 
 
 window.mainloop()
